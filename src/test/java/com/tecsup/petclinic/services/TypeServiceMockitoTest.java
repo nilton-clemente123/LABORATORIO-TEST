@@ -10,7 +10,6 @@ import com.tecsup.petclinic.repositories.PetRepository;
 import com.tecsup.petclinic.repositories.TypeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -214,6 +213,81 @@ public class TypeServiceMockitoTest {
         }
 
         Mockito.verify(this.repository, Mockito.times(1)).delete(rabbit);
+    }
+
+    // ------------------------------------------------------------------
+    // Integrante C — Filtros y errores
+    // ------------------------------------------------------------------
+
+    @Test
+    public void testGetPetCountByType_ExcludeInactive() {
+
+        Type cat = new Type(1, "cat", "Domestic feline", true, "small", 15, "medium");
+        Type dog = new Type(2, "dog", "Domestic canine", true, "medium", 12, "medium");
+        Type snake = new Type(6, "snake", "Serpent", false, "medium", 20, "high"); // Inactivo (active = false)
+
+        List<Type> types = List.of(cat, dog, snake);
+
+        List<Pet> pets = List.of(
+                new Pet(1, "Leo", 1, 1, null),
+                new Pet(7, "Samantha", 1, 6, null),
+                new Pet(3, "Rosy", 2, 3, null),
+                new Pet(2, "Basil", 6, 2, null)
+        );
+
+        Mockito.when(this.repository.findAll()).thenReturn(types);
+        Mockito.when(this.petRepository.findAll()).thenReturn(pets);
+
+        // Se envía true para excluir tipos inactivos
+        List<PetCountByTypeDTO> report = this.typeService.getPetCountByType(true);
+
+        log.info("Reporte excluyendo inactivos: {}", report);
+
+        // Debe incluir solo los 2 activos (cat y dog) y excluir a snake
+        assertEquals(2, report.size());
+
+        boolean containsSnake = report.stream()
+                .anyMatch(dto -> "snake".equals(dto.getTypeName()));
+        assertFalse(containsSnake, "El reporte no debe incluir la serpiente (active = false)");
+    }
+
+    @Test
+    public void testFindTypeById_NotFound() {
+
+        int ID_INEXISTENTE = 999;
+
+        Mockito.when(this.repository.findById(ID_INEXISTENTE))
+                .thenReturn(Optional.empty());
+
+        try {
+            this.typeService.findById(ID_INEXISTENTE);
+            fail("Debería haber lanzado la excepción TypeNotFoundException");
+        } catch (TypeNotFoundException e) {
+            log.info("Excepción capturada correctamente: {}", e.getMessage());
+            assertTrue(true);
+        }
+
+        Mockito.verify(this.repository, Mockito.times(1)).findById(ID_INEXISTENTE);
+    }
+
+    @Test
+    public void testDeleteType_NotFound() {
+
+        int ID_INEXISTENTE = 999;
+
+        Mockito.when(this.repository.findById(ID_INEXISTENTE))
+                .thenReturn(Optional.empty());
+
+        try {
+            this.typeService.delete(ID_INEXISTENTE);
+            fail("Debería haber lanzado la excepción TypeNotFoundException");
+        } catch (TypeNotFoundException e) {
+            log.info("Excepción al eliminar capturada correctamente: {}", e.getMessage());
+            assertTrue(true);
+        }
+
+        Mockito.verify(this.repository, Mockito.times(1)).findById(ID_INEXISTENTE);
+        Mockito.verify(this.repository, Mockito.never()).delete(Mockito.any(Type.class));
     }
 
 }
