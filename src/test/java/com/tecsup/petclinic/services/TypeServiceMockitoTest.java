@@ -1,9 +1,12 @@
 package com.tecsup.petclinic.services;
 
+import com.tecsup.petclinic.dtos.PetCountByTypeDTO;
 import com.tecsup.petclinic.dtos.TypeDTO;
+import com.tecsup.petclinic.entities.Pet;
 import com.tecsup.petclinic.entities.Type;
 import com.tecsup.petclinic.exceptions.TypeNotFoundException;
 import com.tecsup.petclinic.mappers.TypeMapper;
+import com.tecsup.petclinic.repositories.PetRepository;
 import com.tecsup.petclinic.repositories.TypeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,6 +33,9 @@ public class TypeServiceMockitoTest {
 
     @MockitoBean
     private TypeRepository repository;
+
+    @MockitoBean
+    private PetRepository petRepository;
 
     // ------------------------------------------------------------------
     // Integrante A — CRUD básico
@@ -134,6 +141,79 @@ public class TypeServiceMockitoTest {
         assertEquals(typeExpected.getCareLevel(), type.getCareLevel());
 
         Mockito.verify(this.repository, Mockito.times(1)).findById(1);
+    }
+
+    // ------------------------------------------------------------------
+    // Integrante B — Reporte de mascotas por tipo
+    // ------------------------------------------------------------------
+
+    @Test
+    public void testGetPetCountByType() {
+
+        Type cat = new Type(1, "cat", "Domestic feline", true, "small", 15, "medium");
+        Type dog = new Type(2, "dog", "Domestic canine", true, "medium", 12, "medium");
+        Type snake = new Type(6, "snake", "Serpent", false, "medium", 20, "high");
+
+        List<Type> types = List.of(cat, dog, snake);
+
+        // 2 cats, 1 dog, 1 snake
+        List<Pet> pets = List.of(
+                new Pet(1, "Leo", 1, 1, null),
+                new Pet(7, "Samantha", 1, 6, null),
+                new Pet(3, "Rosy", 2, 3, null),
+                new Pet(2, "Basil", 6, 2, null)
+        );
+
+        Mockito.when(this.repository.findAll()).thenReturn(types);
+        Mockito.when(this.petRepository.findAll()).thenReturn(pets);
+
+        List<PetCountByTypeDTO> report = this.typeService.getPetCountByType(false);
+
+        assertEquals(3, report.size());
+
+        PetCountByTypeDTO catReport = report.stream()
+                .filter(dto -> "cat".equals(dto.getTypeName()))
+                .findFirst().orElseThrow();
+        assertEquals(2L, catReport.getPetCount());
+
+        PetCountByTypeDTO dogReport = report.stream()
+                .filter(dto -> "dog".equals(dto.getTypeName()))
+                .findFirst().orElseThrow();
+        assertEquals(1L, dogReport.getPetCount());
+
+        PetCountByTypeDTO snakeReport = report.stream()
+                .filter(dto -> "snake".equals(dto.getTypeName()))
+                .findFirst().orElseThrow();
+        assertEquals(1L, snakeReport.getPetCount());
+    }
+
+    @Test
+    public void testGetPetCountByType_Empty() {
+
+        Mockito.when(this.repository.findAll()).thenReturn(List.of());
+        Mockito.when(this.petRepository.findAll()).thenReturn(List.of());
+
+        List<PetCountByTypeDTO> report = this.typeService.getPetCountByType(false);
+
+        assertNotNull(report);
+        assertTrue(report.isEmpty());
+    }
+
+    @Test
+    public void testDeleteType() {
+
+        Type rabbit = new Type(7, "rabbit", "Domestic rabbit", true, "small", 9, "medium");
+
+        Mockito.when(this.repository.findById(7)).thenReturn(Optional.of(rabbit));
+        Mockito.doNothing().when(this.repository).delete(rabbit);
+
+        try {
+            this.typeService.delete(7);
+        } catch (TypeNotFoundException e) {
+            fail(e.getMessage());
+        }
+
+        Mockito.verify(this.repository, Mockito.times(1)).delete(rabbit);
     }
 
 }
