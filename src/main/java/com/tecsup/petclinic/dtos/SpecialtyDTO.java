@@ -14,6 +14,6 @@ public class SpecialtyDTO {
     private Integer id;
     private String name;
     private String office;
-    private Integer hOpen;
-    private Integer hClose;
+    private Integer openHour;
+    private Integer closeHour;
 }

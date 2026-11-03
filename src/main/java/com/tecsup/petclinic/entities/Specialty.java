@@ -23,8 +23,8 @@ public class Specialty {
     private String office;
 
     @Column(name = "h_open")
-    private Integer hOpen;
+    private Integer openHour;
 
     @Column(name = "h_close")
-    private Integer hClose;
+    private Integer closeHour;
 }
