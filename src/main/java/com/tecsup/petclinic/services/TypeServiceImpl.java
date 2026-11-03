@@ -51,6 +51,13 @@ public class TypeServiceImpl implements TypeService {
 	}
 
 	@Override
+	public List<TypeDTO> findAll() {
+		return typeRepository.findAll().stream()
+				.map(typeMapper::mapToDto)
+				.collect(Collectors.toList());
+	}
+
+	@Override
 	public List<PetCountByTypeDTO> getPetCountByType(boolean excludeInactive) {
 
 		List<Type> types = typeRepository.findAll();

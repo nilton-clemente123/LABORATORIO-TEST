@@ -26,6 +26,11 @@ public interface TypeService {
 	TypeDTO findById(Integer id) throws TypeNotFoundException;
 
 	/**
+	 * Returns all pet types.
+	 */
+	List<TypeDTO> findAll();
+
+	/**
 	 * Returns a report with the number of pets grouped by type.
 	 *
 	 * @param excludeInactive when true, inactive types are excluded from the report
